@@ -1,89 +1,54 @@
 package com.talend.rb;
 
-import java.io.BufferedReader;
-import java.io.ByteArrayInputStream;
-import java.io.IOException;
-import java.io.InputStreamReader;
-import java.net.HttpURLConnection;
-import java.net.MalformedURLException;
-import java.net.URL;
 import java.util.HashMap;
 import java.util.Map;
 
-import javax.xml.parsers.DocumentBuilder;
-import javax.xml.parsers.DocumentBuilderFactory;
-import javax.xml.parsers.ParserConfigurationException;
-import javax.xml.xpath.XPath;
-import javax.xml.xpath.XPathConstants;
-import javax.xml.xpath.XPathExpressionException;
-import javax.xml.xpath.XPathFactory;
-
 import org.w3c.dom.Document;
-import org.w3c.dom.NodeList;
-import org.xml.sax.SAXException;
+
+import com.talend.rb.cli.ExecutionMode;
+import com.talend.rb.cli.SearchBounds;
+import com.talend.rb.data.xml.FieldExtractor;
+import com.talend.rb.data.xml.NistXmlData;
 
 public class Main {
 
 	public static void main(String[] args) {
-		try {
-			URL url = new URL("https://beacon.nist.gov/rest/record/last");
-
-			HttpURLConnection conn = (HttpURLConnection) url.openConnection();
-			conn.setRequestMethod("GET");
-			conn.setRequestProperty("Accept", "text/xml");
-
-			if (conn.getResponseCode() != 200) {
-				throw new RuntimeException("Failed : HTTP error code : " + conn.getResponseCode());
-			}
-
-			BufferedReader br = new BufferedReader(new InputStreamReader((conn.getInputStream())));
-
-			String output;
-			StringBuilder xmlStringBuilder = new StringBuilder();
-			while ((output = br.readLine()) != null) {
-				xmlStringBuilder.append(output);
-			}
-			conn.disconnect();
-
-			DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
-			DocumentBuilder builder = factory.newDocumentBuilder();
-
-			ByteArrayInputStream input = new ByteArrayInputStream(xmlStringBuilder.toString().getBytes("UTF-8"));
-			Document doc = builder.parse(input);
-
-			XPath xPath = XPathFactory.newInstance().newXPath();
-			String expression = "//record/outputValue";
-			NodeList nodeList = (NodeList) xPath.compile(expression).evaluate(doc, XPathConstants.NODESET);
-
-			String outputValue = nodeList.item(0).getTextContent();
-
-			Map<Character, Integer> resultsMap = new HashMap<Character, Integer>();
+		// retrieve --from and --to values from arguments 
+		SearchBounds bounds = ExecutionMode.retrieveSearchParameters(args);
+		
+		Map<Character, Integer> summary = new HashMap<Character, Integer>();
+		
+		int timestamp = bounds.getFrom();
+		// process in loop all records which fall into period between 'from' and 'to'  
+		// for each (or next closest) record corresponding to timestamp 
+		do {
+			// get the whole record
+			Document record = NistXmlData.fetchRecord(timestamp);
+			
+			// extract the value for 'outputValue' 
+			String outputValue = FieldExtractor.extractFieldValue(record, "outputValue");
+			
+			// for each character in the 'outputValue'
 			for (Character currChar : outputValue.toCharArray()) {
-				if (resultsMap.containsKey(currChar)) {
-					Integer currValue = resultsMap.get(currChar);
-					resultsMap.put(currChar, ++currValue);
+				// if there is a map entry for current character
+				if (summary.containsKey(currChar)) {
+					// get current count of occurrences 
+					Integer currCount = summary.get(currChar);
+					// put the count incremented by 1
+					summary.put(currChar, ++currCount);
 				} else
-					resultsMap.put(currChar, 1);
+					// it is the first occurrence of the character  
+					summary.put(currChar, 1);
 			}
 			
-			resultsMap.forEach((k,v)->System.out.println(k + "," + v));
-
-		} catch (MalformedURLException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (ParserConfigurationException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (SAXException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (XPathExpressionException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} 
+			// records are generated with the step of 60 seconds
+			// add them to timestamp 
+			timestamp += 60;
+		// loop exits when timestamp exceeds the 'to' timestamp	
+		} while (timestamp <= bounds.getTo());
+		
+		// print the summary of characters occurrences 
+		summary.forEach((k,v)->System.out.println(k + "," + v));
 	}
 
 }

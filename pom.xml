@@ -16,19 +16,34 @@
 				</configuration>
 			</plugin>
 			<plugin>
-				<groupId>org.apache.maven.plugins</groupId>
-				<artifactId>maven-jar-plugin</artifactId>
-				<version>2.4</version>
+				<artifactId>maven-assembly-plugin</artifactId>
 				<configuration>
 					<archive>
 						<manifest>
-							<addClasspath>true</addClasspath>
-							<classpathPrefix>lib/</classpathPrefix>
 							<mainClass>com.talend.rb.Main</mainClass>
 						</manifest>
 					</archive>
+					<descriptorRefs>
+						<descriptorRef>jar-with-dependencies</descriptorRef>
+					</descriptorRefs>
 				</configuration>
+				<executions>
+					<execution>
+						<id>make-assembly</id>
+						<phase>package</phase> 
+						<goals>
+							<goal>single</goal>
+						</goals>
+					</execution>
+				</executions>
 			</plugin>
 		</plugins>
 	</build>
+	<dependencies>
+		<dependency>
+			<groupId>commons-cli</groupId>
+			<artifactId>commons-cli</artifactId>
+			<version>1.3.1</version>
+		</dependency>
+	</dependencies>
 </project>
