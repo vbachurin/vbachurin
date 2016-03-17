@@ -5,7 +5,6 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
-import java.net.MalformedURLException;
 import java.net.URL;
 
 import javax.xml.parsers.DocumentBuilder;
@@ -16,18 +15,45 @@ import org.w3c.dom.Document;
 import org.xml.sax.SAXException;
 
 public class NistXmlData {
-	
+
+	private static NistXmlData nistXmlData;
+
+	private NistXmlData() {
+
+	}
+
+	public static NistXmlData getInstance() {
+		if (nistXmlData == null)
+			nistXmlData = new NistXmlData();
+		return nistXmlData;
+	}
+
 	/**
 	 * Makes REST API calls to fetch record for timestamp
+	 * 
 	 * @param timestamp
 	 * @return Document containing the record data
 	 */
-	public static Document fetchRecord(int timestamp) {
-		Document doc = null;
-		try {
-			URL url = new URL("https://beacon.nist.gov/rest/record/" + timestamp);
+	public Document fetchRecord(int timestamp) {
+		HttpURLConnection connection = createConnection(timestamp);
+		StringBuilder xmlString = obtainRecord(connection);
+		return constructDocument(xmlString);
+	}
 
-			HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+	HttpURLConnection createConnection(int timestamp) {
+		HttpURLConnection connection = null;
+		try {
+			URL url  = new URL("https://beacon.nist.gov/rest/record/" + timestamp);
+			connection = (HttpURLConnection) url.openConnection();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+		return connection;
+	}
+
+	StringBuilder obtainRecord(HttpURLConnection conn) {
+		StringBuilder xmlString = new StringBuilder();
+		try {
 			conn.setRequestMethod("GET");
 			conn.setRequestProperty("Accept", "text/xml");
 
@@ -38,27 +64,28 @@ public class NistXmlData {
 			BufferedReader br = new BufferedReader(new InputStreamReader((conn.getInputStream())));
 
 			String line;
-			StringBuilder xmlStringBuilder = new StringBuilder();
 			while ((line = br.readLine()) != null) {
-				xmlStringBuilder.append(line);
+				xmlString.append(line);
 			}
 			conn.disconnect();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+		return xmlString;
+	}
 
+	Document constructDocument(StringBuilder xmlString) {
+		Document doc = null;
+		try {
 			DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
 			DocumentBuilder builder = factory.newDocumentBuilder();
 
-			ByteArrayInputStream input = new ByteArrayInputStream(xmlStringBuilder.toString().getBytes("UTF-8"));
+			ByteArrayInputStream input = new ByteArrayInputStream(xmlString.toString().getBytes("UTF-8"));
 			doc = builder.parse(input);
-		} catch (MalformedURLException e) {
-			e.printStackTrace();
-		} catch (IOException e) {
-			e.printStackTrace();
-		} catch (ParserConfigurationException e) {
-			e.printStackTrace();
-		} catch (SAXException e) {
+		} catch (ParserConfigurationException | SAXException | IOException e) {
 			e.printStackTrace();
 		}
-		return doc; 
+		return doc;
 	}
 
 }

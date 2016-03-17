@@ -14,7 +14,7 @@ import org.ocpsoft.prettytime.nlp.PrettyTimeParser;
 
 public class ExecutionMode {
 
-    public static SearchBounds retrieveSearchParameters(String[] args) {
+    public static SearchBounds retrieveSearchParameters(String[] args) throws IllegalArgumentException {
 
         Options options = new Options();
         options.addOption(new Option("from", "from", true, "from time"));
@@ -42,7 +42,7 @@ public class ExecutionMode {
         }
     }
 
-    private static int prettyDateToTimestamp(String value) {
+    private static int prettyDateToTimestamp(String value) throws IllegalArgumentException {
         List<Date> parse = new PrettyTimeParser().parse(value);
 
         Calendar parsedDate = Calendar.getInstance();
@@ -51,7 +51,7 @@ public class ExecutionMode {
         int timestamp = (int) (parsedDate.getTimeInMillis()/1000);
         
         Calendar earliestDate = Calendar.getInstance();
-        earliestDate.setTimeInMillis(1378395540);
+		earliestDate.setTimeInMillis((long) 1378395540*1000);
         
         if (parsedDate.before(earliestDate)) {
             String message = "One of the arguments pre-dates 05/Sep/2013";

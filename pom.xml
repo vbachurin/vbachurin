@@ -20,7 +20,7 @@
 				<configuration>
 					<archive>
 						<manifest>
-							<mainClass>com.talend.rb.Main</mainClass>
+							<mainClass>com.talend.rb.Summary</mainClass>
 						</manifest>
 					</archive>
 					<descriptorRefs>
@@ -30,7 +30,7 @@
 				<executions>
 					<execution>
 						<id>make-assembly</id>
-						<phase>package</phase> 
+						<phase>package</phase>
 						<goals>
 							<goal>single</goal>
 						</goals>
@@ -49,6 +49,16 @@
 			<groupId>org.ocpsoft.prettytime</groupId>
 			<artifactId>prettytime-nlp</artifactId>
 			<version>4.0.0.Final</version>
+		</dependency>
+		<dependency>
+			<groupId>org.mockito</groupId>
+			<artifactId>mockito-core</artifactId>
+			<version>1.10.19</version>
+		</dependency>
+		<dependency>
+			<groupId>junit</groupId>
+			<artifactId>junit</artifactId>
+			<version>4.12</version>
 		</dependency>
 	</dependencies>
 </project>
